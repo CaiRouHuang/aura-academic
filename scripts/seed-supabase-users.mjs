@@ -12,6 +12,7 @@ const accounts = [
   ['P08', 'ZF2DST', 'student', 'Participant P08'],
   ['P09', 'ZUTWCA', 'student', 'Participant P09'],
   ['P10', 'SR4RG7', 'student', 'Participant P10'],
+  ['PLUVIA', '3847', 'student', 'Participant PLUVIA'],
   ['teacher', 'TEACH1', 'teacher', 'Teacher'],
   ['dev', 'DEVLOG', 'dev', 'Developer'],
 ];
