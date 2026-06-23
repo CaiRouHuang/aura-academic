@@ -1,5 +1,5 @@
 import { logoutExperimentAccount } from './authService';
-import { hydrateRemoteDataToLocal, mirrorPatch, mirrorUpsert, REMOTE_TABLES } from './remoteData';
+import { hydrateRemoteDataToLocal, mirrorPatch, mirrorSaveSettings, mirrorUpsert, REMOTE_TABLES } from './remoteData';
 
 /* ================================================================
    LOCAL STORAGE DATA SERVICE
@@ -492,6 +492,8 @@ export function getSettings() {
 export function saveSettings(settings) {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   window.dispatchEvent(new Event('settings_changed'));
+  // Sync to Supabase
+  mirrorSaveSettings(settings);
 }
 
 /* ── Scoring Formula ───────────────────────────── */

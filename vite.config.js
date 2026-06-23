@@ -26,7 +26,7 @@ function aiProxyPlugin() {
           return
         }
 
-        const apiKey = process.env.NVIDIA_API_KEY || process.env.AI_API_KEY || process.env.VITE_NVIDIA_API_KEY
+        const apiKey = body.apiKey || process.env.NVIDIA_API_KEY || process.env.AI_API_KEY || process.env.VITE_NVIDIA_API_KEY
         const baseUrl = String(body.baseUrl || process.env.VITE_AI_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, '')
         const upstreamUrl = resolveChatCompletionsUrl(baseUrl)
 

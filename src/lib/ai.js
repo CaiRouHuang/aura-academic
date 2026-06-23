@@ -20,6 +20,7 @@ function getActiveSettings() {
   return {
     baseUrl: (settings.ai_base_url || import.meta.env.VITE_AI_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ''),
     model: model || import.meta.env.VITE_AI_MODEL || DEFAULT_MODEL,
+    apiKey: settings.ai_api_key || '',
     language: settings.language === 'zh' ? 'zh-TW' : 'ja-JP',
   };
 }
@@ -38,6 +39,7 @@ async function chatJson({ system, user, temperature = 0.2, maxTokens = 1800, tim
       signal: controller.signal,
       body: JSON.stringify({
         baseUrl: settings.baseUrl,
+        apiKey: settings.apiKey,
         timeoutMs,
         request: {
           model: settings.model,
@@ -120,6 +122,7 @@ async function repairJsonContent(content, settings) {
       signal: controller.signal,
       body: JSON.stringify({
         baseUrl: settings.baseUrl,
+        apiKey: settings.apiKey,
         timeoutMs: 60000,
         request: {
           model: settings.model,

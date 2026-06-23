@@ -26,8 +26,8 @@ export default async function handler(req, res) {
       return;
     }
 
-    const apiKey = process.env.NVIDIA_API_KEY || process.env.AI_API_KEY;
-    const baseUrl = String(process.env.AI_BASE_URL || body.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+    const apiKey = body.apiKey || process.env.NVIDIA_API_KEY || process.env.AI_API_KEY;
+    const baseUrl = String(body.baseUrl || process.env.AI_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, '');
     const upstreamUrl = resolveChatCompletionsUrl(baseUrl);
 
     if (!apiKey) {
