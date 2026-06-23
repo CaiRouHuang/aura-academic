@@ -12,7 +12,7 @@ const accounts = [
   ['P08', 'ZF2DST', 'student', 'Participant P08'],
   ['P09', 'ZUTWCA', 'student', 'Participant P09'],
   ['P10', 'SR4RG7', 'student', 'Participant P10'],
-  ['PLUVIA', '3847', 'student', 'Participant PLUVIA'],
+  ['PLUVIA', '384700', 'student', 'Participant PLUVIA'],
   ['teacher', 'TEACH1', 'teacher', 'Teacher'],
   ['dev', 'DEVLOG', 'dev', 'Developer'],
 ];
@@ -74,6 +74,18 @@ async function createOrGetUser({ email, password, code, role, displayName }) {
   if (!existing) {
     throw new Error(`User ${email} already exists but could not be found by admin list.`);
   }
+
+  // Force update password for existing user
+  const updateResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${existing.id}`, {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({ password, email_confirm: true }),
+  });
+  
+  if (!updateResponse.ok) {
+    console.warn(`Failed to update password for existing user ${email}`);
+  }
+
   return existing;
 }
 

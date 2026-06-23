@@ -17,7 +17,7 @@ export const PARTICIPANT_ACCOUNTS = [
   { code: 'P08', password: 'ZF2DST' },
   { code: 'P09', password: 'ZUTWCA' },
   { code: 'P10', password: 'SR4RG7' },
-  { code: 'PLUVIA', password: '3847' },
+  { code: 'PLUVIA', password: '384700' },
 ];
 
 const LOCAL_PRIVILEGED_ACCOUNTS = [
