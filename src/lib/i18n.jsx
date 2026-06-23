@@ -511,11 +511,11 @@ const resources = {
 const I18nContext = createContext();
 
 export function I18nProvider({ children }) {
-  const [lang, setLang] = useState(getSettings().language || 'ja');
+  const [lang, setLang] = useState(getSettings().language || 'zh');
 
   useEffect(() => {
     const handleSettingsChanged = () => {
-      const newLang = getSettings().language || 'ja';
+      const newLang = getSettings().language || 'zh';
       if (newLang !== lang) {
         setLang(newLang);
       }

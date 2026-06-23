@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       if (!isSupabaseConfigured()) {
-        seedDemoData();
+        // seedDemoData();
       }
 
       const user = await loginWithExperimentAccount(loginId, password);

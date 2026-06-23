@@ -478,7 +478,7 @@ export function getSettings() {
     ai_model: 'meta/llama-3.1-70b-instruct',
     ai_custom_model: '',
     ai_base_url: 'https://integrate.api.nvidia.com/v1',
-    language: 'ja',
+    language: 'zh',
   };
 
   try {
@@ -548,7 +548,7 @@ export function scoreToGrade(score) {
 
 /* ── Demo Data Seeding ─────────────────────────── */
 export function seedDemoData() {
-  if (getProjects().length > 0) return; // Already seeded
+  return;
 
   // Create demo assignments
   const assignments = [
