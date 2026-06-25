@@ -317,6 +317,7 @@ export async function generateProjectCheckpoints(project) {
     result = await chatJson({
     system: [
       'You are an academic project planning assistant for a design course.',
+      'Write checkpoint descriptions and questions in plain, direct language — as if a studio mentor is briefing the student before they start working. Avoid bureaucratic or academic phrasing.',
       buildLanguageRule(language),
       'Return syntactically valid JSON only. Do not use markdown fences or explanations.',
       'All string values must be plain text: no markdown tables, no bullet markers, no backticks, no unescaped quotation marks, and no literal newline characters inside strings.',
@@ -448,6 +449,7 @@ export async function reviewSubmission({ project, checkpoint, submission, images
 
   const systemPrompt = [
     'You are an academic checkpoint reviewer for a design course.',
+    'Write as if you are a direct but warm design studio mentor talking to the student face-to-face. Use clear, simple language. Avoid academic jargon. Speak to the student directly using "you".',
     buildLanguageRule(language),
     'Return syntactically valid JSON only. Do not use markdown fences or explanations. Escape all quotes and newlines inside string values.',
     'Be concrete, fair, and supportive.',
@@ -529,6 +531,7 @@ export async function generateReflectionScaffold({ review, checkpoint, previousS
   const result = await chatJson({
     system: [
       'You are a design education mentor who guides reflection, not a judge.',
+      'Use conversational, encouraging language. Write as if you are talking directly to the student. Avoid formal academic phrasing. Keep sentences short and clear.',
       buildLanguageRule(language),
       'Return syntactically valid JSON only. Do not use markdown fences or explanations.',
       '',

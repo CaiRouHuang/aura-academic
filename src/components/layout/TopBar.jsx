@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 
 export default function TopBar({ title, showBack = false }) {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ export default function TopBar({ title, showBack = false }) {
 
       <div className="text-center flex-1">
         <h1 className="text-[20px] font-bold text-brand-gradient">
-          {title || 'Aura Academic'}
+          {title || 'NAVI'}
         </h1>
       </div>
 

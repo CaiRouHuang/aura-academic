@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getConsentForCurrentUser, hydrateRemoteData, seedDemoData, setCurrentUser } from '../../lib/store';
 import { loginWithExperimentAccount } from '../../lib/authService';
@@ -51,7 +51,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm relative z-10 animate-fade-up">
         <div className="text-center mb-12">
-          <h1 className="text-[32px] font-light text-brand-gradient mb-2">Aura Academic</h1>
+          <h1 className="text-[32px] font-light text-brand-gradient mb-2">NAVI</h1>
           <p className="text-[14px] text-on-surface-variant">Experiment login for checkpoint-based design learning.</p>
         </div>
 
@@ -111,7 +111,7 @@ export default function LoginPage() {
 
         <div className="text-center mt-8">
           <p className="text-[12px] text-on-surface-variant">
-            Aura Academic experiment build
+            NAVI experiment build
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { getProjects, getCheckpoints } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
@@ -35,7 +35,7 @@ export default function ProjectsListPage() {
 
   return (
     <>
-      <TopBar title="Aura Academic" showBack />
+      <TopBar title="NAVI" showBack />
       <main className="px-[var(--spacing-page)] max-w-3xl mx-auto pt-4 md:pt-8 pb-32">
         {/* Header */}
         <h2 className="text-[22px] text-primary text-center mt-[var(--spacing-stack-lg)] mb-2 animate-fade-up font-medium">

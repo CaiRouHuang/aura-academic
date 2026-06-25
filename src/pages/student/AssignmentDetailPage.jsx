@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+﻿import { useNavigate, useParams } from 'react-router-dom';
 import { getAssignment, getProjects } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
@@ -27,7 +27,7 @@ export default function AssignmentDetailPage() {
 
   return (
     <>
-      <TopBar title="Aura Academic" showBack />
+      <TopBar title="NAVI" showBack />
       <div className="px-[var(--spacing-page)] max-w-2xl mx-auto pt-4 md:pt-8 pb-32">
         <h2 className="text-[22px] text-primary text-center mt-[var(--spacing-stack-lg)] mb-[var(--spacing-stack-xl)] animate-fade-up font-medium">
           {t('assignment.detail_title')}

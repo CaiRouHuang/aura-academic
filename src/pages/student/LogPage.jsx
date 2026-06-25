@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { getProjects, getLogs, getCheckpoints, getSubmissions, getAIReview } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
@@ -23,7 +23,7 @@ export default function LogPage() {
 
   return (
     <>
-      <TopBar title="Aura Academic" showBack />
+      <TopBar title="NAVI" showBack />
       <div className="px-[var(--spacing-page)] max-w-2xl mx-auto pt-4 md:pt-8">
         <h2 className="text-[22px] text-primary text-center mt-[var(--spacing-stack-lg)] mb-2 animate-fade-up font-medium">
           {t('log.title')}

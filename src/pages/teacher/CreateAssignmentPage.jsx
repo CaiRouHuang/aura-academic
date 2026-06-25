@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createAssignment, getCurrentUser } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
@@ -36,7 +36,7 @@ export default function CreateAssignmentPage() {
 
   return (
     <>
-      <TopBar title="Aura Academic" showBack />
+      <TopBar title="NAVI" showBack />
       <div className="px-[var(--spacing-page)] max-w-2xl mx-auto pt-4 pb-32">
         <h2 className="text-[24px] font-bold text-primary text-center mt-[var(--spacing-stack-md)] mb-[var(--spacing-stack-lg)] animate-fade-up">
           {t('assignment.create_title')}

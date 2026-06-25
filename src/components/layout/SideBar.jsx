@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
@@ -50,7 +50,7 @@ export default function SideBar() {
         </span>
         {isExpanded && (
           <span className="ml-3 font-bold text-xl text-primary whitespace-nowrap animate-fade-in">
-            Aura Academic
+            NAVI
           </span>
         )}
       </div>

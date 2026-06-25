@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { getConsentForCurrentUser, getCurrentUser, recordConsent } from '../../lib/store';
 import { logSystemEvent } from '../../lib/eventLogger';
@@ -56,7 +56,7 @@ export default function ConsentPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">Aura Academic</p>
+            <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-primary">NAVI</p>
             <h1 className="mt-2 text-[28px] font-light text-on-surface">知情同意與基本資料確認</h1>
           </div>
           <div className="rounded-full border border-outline-variant/40 bg-surface px-4 py-2 text-[13px] font-medium text-on-surface-variant">
@@ -79,7 +79,7 @@ export default function ConsentPage() {
             {/* 各項說明 */}
             <div>
               <h3 className="font-bold text-[16px] text-on-surface mb-2">■ 研究目的與流程說明：</h3>
-              <p>本研究旨在探討導入「AI檢查點系統（Aura Academic）」後，如何輔助並支持設計領域學生在進行專題研究或設計開發過程中的自我調節與迭代歷程。參與本研究之過程中，您將獲邀使用本平台進行專題提案之建立、階段性檢查點之提交、設計作品與文件之匯出及上傳，並閱讀由人工智慧所生成之階段性回饋與建議。本研究純屬學術探討性質，側重於使用者之設計決策與行為分析，並非涉及任何身體檢測或醫療診斷範疇。</p>
+              <p>本研究旨在探討導入「AI檢查點系統（NAVI）」後，如何輔助並支持設計領域學生在進行專題研究或設計開發過程中的自我調節與迭代歷程。參與本研究之過程中，您將獲邀使用本平台進行專題提案之建立、階段性檢查點之提交、設計作品與文件之匯出及上傳，並閱讀由人工智慧所生成之階段性回饋與建議。本研究純屬學術探討性質，側重於使用者之設計決策與行為分析，並非涉及任何身體檢測或醫療診斷範疇。</p>
             </div>
 
             <div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   addLog,
@@ -981,7 +981,7 @@ export default function UploadPage() {
 
   return (
     <>
-      <TopBar title="Aura Academic" showBack />
+      <TopBar title="NAVI" showBack />
       <div className="px-[var(--spacing-page)] max-w-2xl mx-auto pt-4 md:pt-8 pb-32">
         <h2 className="text-[22px] text-primary text-center mt-[var(--spacing-stack-lg)] mb-2 animate-fade-up font-medium">
           {t('upload.title')}

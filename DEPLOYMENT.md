@@ -1,4 +1,4 @@
-# Aura Academic Experiment Deployment
+﻿# NAVI Experiment Deployment
 
 This build is designed for the free tiers of Supabase and Vercel.
 
