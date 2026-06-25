@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getConsentForCurrentUser, hydrateRemoteData, seedDemoData, setCurrentUser } from '../../lib/store';
 import { loginWithExperimentAccount } from '../../lib/authService';

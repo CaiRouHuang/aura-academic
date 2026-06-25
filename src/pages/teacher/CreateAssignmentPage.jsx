@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createAssignment, getCurrentUser } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';

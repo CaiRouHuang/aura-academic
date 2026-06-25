@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { getConsentForCurrentUser, getCurrentUser, recordConsent } from '../../lib/store';
 import { logSystemEvent } from '../../lib/eventLogger';

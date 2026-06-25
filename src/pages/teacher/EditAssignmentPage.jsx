@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getAssignment, updateAssignment, getCurrentUser } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
