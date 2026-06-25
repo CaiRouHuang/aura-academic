@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+﻿import { useNavigate, useParams } from 'react-router-dom';
 import { getAssignment, getProjects } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';

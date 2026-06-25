@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { getProjects, getLogs, getCheckpoints, getSubmissions, getAIReview } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
@@ -104,9 +104,9 @@ function LogCard({ log, score, isPassed, t }) {
         <div className="flex justify-between items-start gap-4 mb-4">
           <div>
             <p className="text-[12px] text-on-surface-variant">
-              {new Date(log.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date(log.created_at).toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' })}
               {' '}
-              {new Date(log.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
             </p>
             {log.metadata?.document_analysis_latency_ms && (
               <div className="text-[12px] text-outline mt-1 flex items-center gap-3">
@@ -195,6 +195,34 @@ function LogCard({ log, score, isPassed, t }) {
             <p className="text-[13px] text-on-surface-variant">{log.aiReview.suggestions}</p>
             {log.aiReview.encouragement && (
               <p className="text-[13px] text-on-surface-variant mt-2 italic">{log.aiReview.encouragement}</p>
+            )}
+            {log.aiReview.criteria_results && log.aiReview.criteria_results.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-[12px] font-bold text-on-surface flex items-center gap-1 border-b border-outline-variant/30 pb-1">
+                  <span className="material-symbols-outlined text-[14px]">checklist</span>
+                  逐項評分明細
+                </h4>
+                {log.aiReview.criteria_results.map((cr, i) => {
+                  const criterion = log.checkpoint?.criteria?.find(c => c.id === cr.criterion_id);
+                  return (
+                    <div key={i} className="bg-surface/50 rounded-lg p-3 border border-outline-variant/10 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[13px] font-bold text-on-surface">{criterion?.label || '評分項目'}</span>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${cr.passed ? 'bg-status-pass-bg text-status-pass' : 'bg-status-warning-bg text-status-warning'}`}>
+                          {cr.passed ? '達成' : '未達'} ({cr.score}分)
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-on-surface-variant/80">{criterion?.description}</p>
+                      <div className="mt-1 pt-2 border-t border-outline-variant/10">
+                        <p className="text-[13px] text-on-surface-variant flex items-start gap-1">
+                          <span className="material-symbols-outlined text-[14px] text-primary shrink-0 mt-0.5" style={{fontVariationSettings: "'FILL' 1"}}>auto_awesome</span>
+                          <span>{cr.comment}</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

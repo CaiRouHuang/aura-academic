@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject, updateProject, getCheckpoints, getSubmissionsByProject, getCurrentUser, getAIReview } from '../../lib/store';
+import { getProject, updateProject, getCheckpoints, getSubmissionsByProject, getCurrentUser, getAIReview, getAssignment } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
 import GlassCard from '../../components/ui/GlassCard';
 import FilePreviewModal from '../../components/ui/FilePreviewModal';
+import MarkdownRenderer from '../../components/ui/MarkdownRenderer';
 
 export default function CheckpointsPage() {
   const { projectId } = useParams();
@@ -16,6 +17,7 @@ export default function CheckpointsPage() {
   const [checkpoints, setCheckpoints] = useState(() => getCheckpoints(projectId));
   const [submissions, setSubmissions] = useState(() => getSubmissionsByProject(projectId));
   const user = getCurrentUser();
+  const assignment = project?.assignment_id ? getAssignment(project.assignment_id) : null;
 
   // Reload data from localStorage (called after upload navigates back)
   const reload = useCallback(() => {
@@ -40,6 +42,7 @@ export default function CheckpointsPage() {
   const [editForm, setEditForm] = useState({ title: '', description: '', team_members: '' });
   const [previewFile, setPreviewFile] = useState(null);
   const [showAllFiles, setShowAllFiles] = useState(false);
+  const [showAssignmentDetailsModal, setShowAssignmentDetailsModal] = useState(false);
 
   const handleOpenEdit = () => {
     setEditForm({
@@ -171,30 +174,47 @@ export default function CheckpointsPage() {
                <span className="material-symbols-outlined text-[20px]">edit</span>
             </button>
           </div>
-          <p className="text-[14px] text-on-surface-variant text-center mb-[var(--spacing-stack-xl)] leading-relaxed delay-100 max-w-lg">
+          <p className="text-[14px] text-on-surface-variant text-justify mb-6 leading-relaxed delay-100 w-full">
             {project.description || t('checkpoints.no_desc')}
           </p>
-          
-          {/* Team Members */}
-          <div className="flex -space-x-3 justify-center mb-6">
-            {project.team_members && project.team_members.length > 0 ? (
-              (Array.isArray(project.team_members) ? project.team_members : [project.team_members]).map((member, i) => (
-                <div key={i} title={member} className={`w-10 h-10 rounded-full border-2 border-surface flex items-center justify-center text-[12px] font-bold shadow-sm ${i % 3 === 0 ? 'bg-primary-container text-on-primary-container' : i % 3 === 1 ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container'}`} style={{ zIndex: 20 - i }}>
-                  {typeof member === 'string' ? member.charAt(0).toUpperCase() : '?'}
-                </div>
-              ))
-            ) : (
-              <>
-                <div className="w-10 h-10 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center text-on-primary-container text-[12px] font-bold shadow-sm z-20">
-                  {user?.name?.charAt(0) || 'Y'}
-                </div>
-                <div className="w-10 h-10 rounded-full border-2 border-surface bg-secondary-container flex items-center justify-center text-on-secondary-container text-[12px] font-bold shadow-sm z-10">
-                  T
-                </div>
-                <div className="w-10 h-10 rounded-full border-2 border-surface bg-tertiary-container flex items-center justify-center text-on-tertiary-container text-[12px] font-bold shadow-sm z-0">
-                  S
-                </div>
-              </>
+
+          {/* Team Members and Assignment Button */}
+          <div className="w-full flex items-center justify-between mb-8">
+            {/* Team Members */}
+            <div className="flex items-center gap-3">
+              <span className="text-[12px] text-on-surface-variant font-medium tracking-wider">TEAM</span>
+              <div className="flex -space-x-2">
+                {project.team_members && project.team_members.length > 0 ? (
+                  (Array.isArray(project.team_members) ? project.team_members : [project.team_members]).map((member, i) => (
+                    <div key={i} title={member} className={`w-8 h-8 rounded-full border-2 border-surface flex items-center justify-center text-[11px] font-bold shadow-sm ${i % 3 === 0 ? 'bg-primary-container text-on-primary-container' : i % 3 === 1 ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container'}`} style={{ zIndex: 20 - i }}>
+                      {typeof member === 'string' ? member.charAt(0).toUpperCase() : '?'}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-full border-2 border-surface bg-primary-container flex items-center justify-center text-on-primary-container text-[11px] font-bold shadow-sm z-20">
+                      {user?.name?.charAt(0) || 'Y'}
+                    </div>
+                    <div className="w-8 h-8 rounded-full border-2 border-surface bg-secondary-container flex items-center justify-center text-on-secondary-container text-[11px] font-bold shadow-sm z-10">
+                      T
+                    </div>
+                    <div className="w-8 h-8 rounded-full border-2 border-surface bg-tertiary-container flex items-center justify-center text-on-tertiary-container text-[11px] font-bold shadow-sm z-0">
+                      S
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Assignment Details Button */}
+            {assignment && (
+              <button
+                onClick={() => setShowAssignmentDetailsModal(true)}
+                className="px-4 py-1.5 bg-surface-variant/30 border border-outline-variant/30 rounded-full hover:bg-primary-container/20 hover:border-primary/30 transition-colors flex items-center gap-1.5 group text-on-surface-variant hover:text-primary shadow-sm hover:shadow"
+              >
+                <span className="material-symbols-outlined text-[16px]">assignment</span>
+                <span className="text-[12px] font-medium transition-colors">作業詳情</span>
+              </button>
             )}
           </div>
         </section>
@@ -245,9 +265,12 @@ export default function CheckpointsPage() {
               const isRevision = cp.status === 'needs_revision';
               const isPending = !isPassed && !isReview && !isRevision;
 
+              const cpSubs = submissions.filter(s => s.checkpoint_id === cp.id).sort((a,b) => b.version - a.version);
+              const latestReview = cpSubs.length > 0 ? getAIReview(cpSubs[0].id) : null;
+
               // Status label
               const statusLabel = isPassed
-                ? t('checkpoints.completed')
+                ? (latestReview?.completion_rate != null ? `${latestReview.completion_rate}分` : t('checkpoints.completed'))
                 : isReview
                   ? t('checkpoints.in_progress')
                   : isRevision
@@ -322,8 +345,6 @@ export default function CheckpointsPage() {
                              </h5>
                              <div className="space-y-2">
                                {cp.criteria.map(c => {
-                                 const cpSubs = submissions.filter(s => s.checkpoint_id === cp.id).sort((a,b) => b.version - a.version);
-                                 const latestReview = cpSubs.length > 0 ? getAIReview(cpSubs[0].id) : null;
                                  const cResult = latestReview?.criteria_results?.find(r => r.criterion_id === c.id);
                                  
                                  return (
@@ -540,6 +561,46 @@ export default function CheckpointsPage() {
 
       {previewFile && (
         <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+      )}
+      {/* Assignment Details Modal */}
+      {showAssignmentDetailsModal && assignment && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-dim/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowAssignmentDetailsModal(false)}>
+          <div className="bg-surface-container-lowest w-full max-w-2xl max-h-[85vh] rounded-[28px] shadow-elevation-3 flex flex-col overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-outline-variant/30">
+              <h3 className="text-[18px] font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[22px]">assignment</span>
+                {assignment.title}
+              </h3>
+              <button 
+                onClick={() => setShowAssignmentDetailsModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-variant/50 text-on-surface-variant transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div>
+                <h4 className="text-[12px] font-bold text-on-surface mb-2">要求說明</h4>
+                <MarkdownRenderer 
+                  content={assignment.requirement_description}
+                  className="text-[14px] text-on-surface-variant leading-relaxed"
+                />
+              </div>
+              {assignment.scoring_criteria && (
+                <div className="pt-4 border-t border-outline-variant/30">
+                  <h4 className="text-[12px] font-bold text-on-surface mb-2">評分標準</h4>
+                  <MarkdownRenderer 
+                    content={assignment.scoring_criteria}
+                    className="text-[14px] text-on-surface-variant leading-relaxed"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

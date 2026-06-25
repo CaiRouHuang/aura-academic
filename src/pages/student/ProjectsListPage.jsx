@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { getProjects, getCheckpoints } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';

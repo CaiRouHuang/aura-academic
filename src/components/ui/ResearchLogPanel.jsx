@@ -8,18 +8,17 @@ import {
 } from '../../lib/eventLogger';
 
 const EVENT_TYPE_LABELS = {
-  upload_event: { label: '📤 Upload', color: '#1a73e8' },
-  ai_eval_event: { label: '🤖 AI Eval', color: '#9c27b0' },
-  student_response: { label: '✍️ Response', color: '#00897b' },
-  teacher_eval_event: { label: '🎓 Teacher', color: '#e65100' },
-  checkpoint_summary: { label: '📊 Summary', color: '#2e7d32' },
-  system_log: { label: '⚙️ System', color: '#546e7a' },
+  upload_event: { label: '📤 Upload', color: 'text-primary bg-primary-container/30 border-primary/20' },
+  ai_eval_event: { label: '🤖 AI Eval', color: 'text-secondary bg-secondary-container/30 border-secondary/20' },
+  student_response: { label: '✍️ Response', color: 'text-tertiary bg-tertiary-container/30 border-tertiary/20' },
+  teacher_eval_event: { label: '🎓 Teacher', color: 'text-error bg-error-container/30 border-error/20' },
+  checkpoint_summary: { label: '📊 Summary', color: 'text-status-pass bg-status-pass-bg border-status-pass/20' },
+  system_log: { label: '⚙️ System', color: 'text-on-surface-variant bg-surface-variant/50 border-outline-variant/30' },
 };
 
 export default function ResearchLogPanel() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [events, setEvents] = useState([]);
-  const [summary, setSummary] = useState({});
+  const [events, setEvents] = useState(() => getResearchEvents());
+  const [summary, setSummary] = useState(() => getEventSummary());
   const [filter, setFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
 
@@ -30,16 +29,10 @@ export default function ResearchLogPanel() {
 
   // Listen for new research events
   useEffect(() => {
-    refresh();
     const handler = () => refresh();
     window.addEventListener('aura_research_event', handler);
     return () => window.removeEventListener('aura_research_event', handler);
   }, [refresh]);
-
-  // Also refresh when panel opens
-  useEffect(() => {
-    if (isOpen) refresh();
-  }, [isOpen, refresh]);
 
   const filtered = filter === 'all'
     ? events
@@ -65,54 +58,32 @@ export default function ResearchLogPanel() {
   };
 
   return (
-      <div style={{
-        width: '100%',
-        minHeight: '400px',
-        maxHeight: '600px',
-        background: '#1e1e2e',
-        borderRadius: '16px',
-        boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        fontFamily: "'Inter', 'SF Mono', monospace",
-        color: '#e0e0e0',
-      }}>
+      <div className="w-full flex flex-col h-[70vh] min-h-[500px] bg-surface-container-lowest border border-outline-variant/30 rounded-[20px] shadow-sm overflow-hidden font-mono">
           {/* Header */}
-          <div style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #333',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
+          <div className="px-5 py-4 border-b border-outline-variant/30 flex justify-between items-center bg-surface-container/30">
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#c4b5fd' }}>
-                🔬 Research Event Logger
+              <div className="text-[14px] font-bold text-primary flex items-center gap-2 font-sans">
+                <span className="material-symbols-outlined text-[18px]">manage_search</span>
+                Research Event Logger
               </div>
-              <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              <div className="text-[12px] text-on-surface-variant mt-0.5 font-sans">
                 {summary._total || 0} events recorded
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div className="flex gap-2">
               <PanelButton onClick={handleExportJSON} title="Export JSON">JSON</PanelButton>
               <PanelButton onClick={handleExportCSV} title="Export CSV">CSV</PanelButton>
-              <PanelButton onClick={handleClear} title="Clear all" danger>🗑</PanelButton>
+              <PanelButton onClick={handleClear} title="Clear all" danger>Clear</PanelButton>
             </div>
           </div>
 
           {/* Stats Bar */}
-          <div style={{
-            padding: '10px 20px',
-            display: 'flex',
-            gap: '6px',
-            flexWrap: 'wrap',
-            borderBottom: '1px solid #333',
-          }}>
+          <div className="px-4 py-3 border-b border-outline-variant/30 flex gap-2 flex-wrap bg-surface-container-lowest">
             <FilterChip
               active={filter === 'all'}
               onClick={() => setFilter('all')}
-              color="#888"
+              baseClass="text-on-surface-variant bg-surface-variant/30 border-outline-variant/30 hover:bg-surface-variant/50"
+              activeClass="text-primary bg-primary-container/30 border-primary/40 font-bold"
             >
               All ({summary._total || 0})
             </FilterChip>
@@ -121,7 +92,8 @@ export default function ResearchLogPanel() {
                 key={type}
                 active={filter === type}
                 onClick={() => setFilter(type)}
-                color={color}
+                baseClass="text-on-surface-variant bg-surface-variant/30 border-outline-variant/30 hover:bg-surface-variant/50"
+                activeClass={`${color} font-bold`}
               >
                 {label} ({summary[type] || 0})
               </FilterChip>
@@ -129,23 +101,11 @@ export default function ResearchLogPanel() {
           </div>
 
           {/* Event List */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '8px 12px',
-          }}>
+          <div className="flex-1 overflow-y-auto p-3 bg-surface-container-lowest/50">
             {reversedFiltered.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '40px 20px',
-                color: '#666',
-                fontSize: '13px',
-              }}>
-                No events recorded yet.
-                <br />
-                <span style={{ fontSize: '11px' }}>
-                  Events will appear here as you use the system.
-                </span>
+              <div className="text-center py-12 text-on-surface-variant font-sans">
+                <div className="text-[14px] font-medium mb-1">No events recorded yet.</div>
+                <div className="text-[12px] opacity-70">Events will appear here as you use the system.</div>
               </div>
             ) : (
               reversedFiltered.slice(0, 100).map(event => (
@@ -169,41 +129,24 @@ function PanelButton({ onClick, title, children, danger }) {
     <button
       onClick={onClick}
       title={title}
-      style={{
-        padding: '4px 10px',
-        borderRadius: '8px',
-        border: `1px solid ${danger ? '#ef4444' : '#444'}`,
-        background: danger ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
-        color: danger ? '#ef4444' : '#ccc',
-        fontSize: '11px',
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'background 0.15s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.12)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)'; }}
+      className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-colors font-sans ${
+        danger 
+          ? 'border-error/30 text-error hover:bg-error-container/30' 
+          : 'border-outline-variant text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
+      }`}
     >
       {children}
     </button>
   );
 }
 
-function FilterChip({ active, onClick, color, children }) {
+function FilterChip({ active, onClick, baseClass, activeClass, children }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        padding: '3px 10px',
-        borderRadius: '999px',
-        border: `1px solid ${active ? color : '#444'}`,
-        background: active ? `${color}22` : 'transparent',
-        color: active ? color : '#888',
-        fontSize: '11px',
-        fontWeight: active ? 700 : 400,
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        whiteSpace: 'nowrap',
-      }}
+      className={`px-3 py-1 rounded-full text-[12px] border transition-all whitespace-nowrap font-sans ${
+        active ? activeClass : baseClass
+      }`}
     >
       {children}
     </button>
@@ -211,7 +154,7 @@ function FilterChip({ active, onClick, color, children }) {
 }
 
 function EventRow({ event, expanded, onToggle }) {
-  const typeInfo = EVENT_TYPE_LABELS[event.event_type] || { label: event.event_type, color: '#888' };
+  const typeInfo = EVENT_TYPE_LABELS[event.event_type] || { label: event.event_type, color: 'text-on-surface-variant bg-surface-variant/30 border-outline-variant/30' };
   const time = new Date(event.timestamp).toLocaleTimeString('en-GB', {
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   });
@@ -224,94 +167,59 @@ function EventRow({ event, expanded, onToggle }) {
 
   return (
     <div
-      style={{
-        marginBottom: '4px',
-        borderRadius: '10px',
-        background: expanded ? '#2a2a3e' : 'transparent',
-        border: expanded ? `1px solid ${typeInfo.color}33` : '1px solid transparent',
-        transition: 'all 0.15s',
-        cursor: 'pointer',
-      }}
+      className={`mb-2 rounded-xl transition-all border cursor-pointer ${
+        expanded 
+          ? 'bg-surface-container border-outline-variant shadow-sm' 
+          : 'bg-transparent border-transparent hover:bg-surface-container-low'
+      }`}
       onClick={onToggle}
-      onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = '#252535'; }}
-      onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = 'transparent'; }}
     >
       {/* Row Header */}
-      <div style={{
-        padding: '8px 12px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}>
+      <div className="px-3 py-2.5 flex items-center gap-3">
         {/* Type Badge */}
-        <span style={{
-          background: `${typeInfo.color}22`,
-          color: typeInfo.color,
-          padding: '2px 8px',
-          borderRadius: '6px',
-          fontSize: '10px',
-          fontWeight: 700,
-          whiteSpace: 'nowrap',
-          border: `1px solid ${typeInfo.color}44`,
-        }}>
+        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold whitespace-nowrap border font-sans ${typeInfo.color}`}>
           {typeInfo.label}
         </span>
 
         {/* Brief */}
-        <span style={{
-          flex: 1,
-          fontSize: '12px',
-          color: '#bbb',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
+        <span className="flex-1 text-[13px] text-on-surface truncate">
           {brief}
         </span>
 
         {/* Time */}
-        <span style={{ fontSize: '10px', color: '#666', whiteSpace: 'nowrap' }}>
+        <span className="text-[11px] text-on-surface-variant whitespace-nowrap font-sans">
           {date} {time}
         </span>
       </div>
 
       {/* Expanded Detail */}
       {expanded && (
-        <div style={{
-          padding: '4px 12px 12px',
-          fontSize: '11px',
-          lineHeight: '1.6',
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="px-4 pb-4 text-[12px] leading-relaxed cursor-default" onClick={e => e.stopPropagation()}>
+          <table className="w-full border-collapse">
             <tbody>
               {Object.entries(event.data).map(([key, value]) => (
-                <tr key={key}>
-                  <td style={{
-                    padding: '3px 8px 3px 0',
-                    color: '#888',
-                    verticalAlign: 'top',
-                    whiteSpace: 'nowrap',
-                    fontFamily: "'SF Mono', 'Fira Code', monospace",
-                    fontSize: '10px',
-                  }}>
+                <tr key={key} className="border-t border-outline-variant/20 last:border-0">
+                  <td className="py-2 pr-3 text-on-surface-variant align-top whitespace-nowrap">
                     {key}
                   </td>
-                  <td style={{
-                    padding: '3px 0',
-                    color: '#ddd',
-                    wordBreak: 'break-all',
-                    fontFamily: "'SF Mono', 'Fira Code', monospace",
-                    fontSize: '10px',
-                  }}>
+                  <td className="py-2 text-on-surface break-all">
                     {formatValue(value)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ marginTop: '6px', fontSize: '10px', color: '#555' }}>
-            ID: {event.event_id}
+          <div className="mt-3 pt-3 border-t border-outline-variant/30 text-[11px] text-on-surface-variant font-sans flex items-center justify-between">
+            <span>ID: <span className="font-mono text-[10px]">{event.event_id}</span></span>
           </div>
+          <details className="mt-3 border-t border-outline-variant/30 pt-3">
+            <summary className="text-[11px] text-on-surface-variant font-sans cursor-pointer select-none">
+              Raw event JSON
+            </summary>
+            <pre className="mt-2 max-h-80 overflow-auto rounded-lg bg-surface-container-high p-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words">
+              {JSON.stringify(event, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
     </div>
@@ -327,11 +235,15 @@ function getBrief(event) {
     case 'ai_eval_event':
       return `${d.completion_rate ?? '?'}% ${d.status_label || ''} (Δ${d.completion_delta ?? '?'})`;
     case 'student_response':
-      return d.resubmitted ? `resubmitted (${d.time_to_resubmit_hours ?? '?'}h)` : 'no resubmit';
+      return d.resubmitted
+        ? `resubmitted (${d.time_to_resubmit_seconds ?? d.time_to_resubmit_hours ?? '?'}s)`
+        : 'initial submit';
     case 'teacher_eval_event':
       return `score: ${d.final_weighted_score ?? '?'} | delta: ${d.ai_human_score_delta ?? '?'}`;
     case 'checkpoint_summary':
       return `${d.total_upload_count || 0} uploads, ${d.completion_rate_start ?? '?'}→${d.completion_rate_end ?? '?'}%`;
+    case 'srl_probe_response':
+      return `${d.probe_key || 'probe'}: ${d.rating ?? d.response_text ?? ''}`;
     case 'system_log':
       return `[${d.event_subtype || '?'}] ${d.detail || ''}`;
     default:

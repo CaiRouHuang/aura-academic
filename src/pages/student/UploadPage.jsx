@@ -1,8 +1,20 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getProjects, getCheckpoints, createSubmission, createAIReview, updateCheckpoint, addLog, getSubmissions, getAIReview } from '../../lib/store';
+import {
+  addLog,
+  createAIReview,
+  createSrlProbeResponse,
+  createSubmission,
+  getAIReview,
+  getCheckpoints,
+  getCurrentParticipantCode,
+  getCurrentUser,
+  getProjects,
+  getSubmissions,
+  updateCheckpoint,
+} from '../../lib/store';
 import { reviewSubmission, summarizePdfChunk } from '../../lib/ai';
-import { logUploadEvent, logAIEvalEvent, logStudentResponseEvent, logCheckpointSummary } from '../../lib/eventLogger';
+import { logUploadEvent, logAIEvalEvent, logStudentResponseEvent, logCheckpointSummary, logSrlProbeResponse } from '../../lib/eventLogger';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
 import GlassCard from '../../components/ui/GlassCard';
@@ -37,6 +49,7 @@ function formatElapsed(seconds) {
   return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
 }
 
+// eslint-disable-next-line no-unused-vars
 function HistorySubmissionCard({ sub, idx, currentCp, setPreviewFile }) {
   const [expanded, setExpanded] = useState(false);
   const review = getAIReview(sub.id);
@@ -216,6 +229,9 @@ export default function UploadPage() {
   });
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [previewFile, setPreviewFile] = useState(null);
+  const [feedbackValueProbe, setFeedbackValueProbe] = useState('');
+  const [finalChangeProbe, setFinalChangeProbe] = useState('');
+  const [probeError, setProbeError] = useState('');
 
   const projectCheckpoints = selectedProject
     ? getCheckpoints(selectedProject)
@@ -228,6 +244,12 @@ export default function UploadPage() {
 
   const isPassed = currentCp?.status === 'passed';
   const submissionsHistory = currentCp ? getSubmissions(currentCp.id) : [];
+  const resultAllPassed = phase === 'result'
+    && aiResult?.completion_rate >= 80
+    && selectedProject
+    && getCheckpoints(selectedProject).every(c => c.status === 'passed');
+  const postFormUrl = import.meta.env.VITE_POST_FORM_URL || '';
+  const hasPostFormUrl = /^https:\/\/.+/i.test(postFormUrl);
 
   useEffect(() => {
     if (phase !== 'analyzing' || !analysisStep.startedAt) return undefined;
@@ -252,12 +274,16 @@ export default function UploadPage() {
 
   const handleUpload = async () => {
     if (!files.length || !currentCp) return;
+    const participantCode = getCurrentParticipantCode();
 
     const startedAt = new Date().getTime();
     setPhase('analyzing');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setAiError('');
     setAiResult(null);
+    setFeedbackValueProbe('');
+    setFinalChangeProbe('');
+    setProbeError('');
     setElapsedSeconds(0);
     setAnalysisStep({
       title: '準備分析檔案',
@@ -520,7 +546,7 @@ export default function UploadPage() {
     });
     const submission = createSubmission({
       checkpoint_id: currentCp.id,
-      submitted_by: 'demo-student',
+      submitted_by: participantCode,
       file_urls: files.map(f => f.name),
       files_data: storedFilesData,
       description: description,
@@ -535,31 +561,104 @@ export default function UploadPage() {
       const ext = f.name.split('.').pop().toUpperCase();
       return ext || 'UNKNOWN';
     }))];
+    const fileDetails = files.map(f => ({
+      name: f.name,
+      type: f.type || 'unknown',
+      size_bytes: f.size,
+      extension: f.name.split('.').pop()?.toLowerCase() || '',
+      used_for_text_extraction: textFiles.includes(f),
+      used_for_image_analysis: imageFiles.includes(f),
+      stored_preview: Boolean(binaryDataUrls.has(f)),
+    }));
+    const textExtractionSummary = textContents.map(item => ({
+      name: item.name,
+      extracted_chars: item.content?.length || 0,
+    }));
+    const submissionMeta = {
+      total_files: files.length,
+      file_types: {
+        images: imageFiles.length,
+        pdfs: pdfFiles.length,
+        text: textFiles.length - pdfFiles.length,
+      },
+      pdf_analysis: pdfAnalysisMeta,
+      docx_analysis: docxAnalysisMeta,
+      images_attached_to_ai: 0,
+    };
     const uploadEvent = logUploadEvent({
-      student_id: 'demo-student',
+      project_id: selectedProject,
+      project_title: currentProject?.title || '',
+      student_id: participantCode,
       checkpoint_id: currentCp.id,
+      checkpoint_title: currentCp.title,
       version_number: submission.version,
       file_type: fileTypes.join(', '),
+      file_count: files.length,
       file_names: files.map(f => f.name),
+      file_details: fileDetails,
+      description_length: description.length,
       days_before_deadline: daysBeforeDeadline,
       document_analysis_latency_ms: documentAnalysisMs,
+      frontend_latency_ms: documentAnalysisMs,
+      skipped_preview_files: skippedPreviewFiles.map(f => ({
+        name: f.name,
+        size_bytes: f.size,
+      })),
+      text_extraction_summary: textExtractionSummary,
+      pdf_analysis: pdfAnalysisMeta,
+      docx_analysis: docxAnalysisMeta,
+      input_snapshot: {
+        project: {
+          id: currentProject?.id || selectedProject,
+          title: currentProject?.title || '',
+        },
+        checkpoint: {
+          id: currentCp.id,
+          title: currentCp.title,
+          order_index: currentCp.order_index,
+          due_date: currentCp.due_date,
+          criteria: currentCp.criteria || [],
+        },
+        submission: {
+          id: submission.id,
+          version: submission.version,
+          description,
+          file_names: files.map(f => f.name),
+        },
+      },
+      processing_output: {
+        stored_file_count: storedFilesData.length,
+        stored_text_chars: storedFilesData.reduce((sum, f) => sum + (f.text_content?.length || 0), 0),
+        extracted_text_files: textContents.length,
+        base64_image_count: base64Images.length,
+        pdf_visual_image_count: pdfVisualImages.length,
+        docx_visual_image_count: docxVisualImages.length,
+      },
     });
 
     // ── If this is a resubmission, log student response event ──
-    if (submission.version > 1 && existingSubs.length > 0) {
-      const prevSub = existingSubs[0]; // sorted newest first
-      const hoursSincePrev = prevSub?.submitted_at
-        ? (new Date() - new Date(prevSub.submitted_at)) / (1000 * 60 * 60)
-        : null;
-      logStudentResponseEvent({
-        student_id: 'demo-student',
-        checkpoint_id: currentCp.id,
-        time_to_resubmit_hours: hoursSincePrev !== null ? Math.round(hoursSincePrev * 100) / 100 : null,
-        resubmitted: true,
-      });
-    }
+    const prevSub = submission.version > 1 && existingSubs.length > 0 ? existingSubs[0] : null;
+    const secondsSincePrev = prevSub?.submitted_at
+      ? (new Date() - new Date(prevSub.submitted_at)) / 1000
+      : null;
+    logStudentResponseEvent({
+      project_id: selectedProject,
+      project_title: currentProject?.title || '',
+      submission_id: submission.id,
+      student_id: participantCode,
+      checkpoint_id: currentCp.id,
+      checkpoint_title: currentCp.title,
+      version_number: submission.version,
+      file_names: files.map(f => f.name),
+      file_details: fileDetails,
+      description,
+      description_length: description.length,
+      time_to_resubmit_seconds: secondsSincePrev !== null ? Math.round(secondsSincePrev) : null,
+      resubmitted: submission.version > 1,
+    });
 
     let reviewData;
+    let promptContext = null;
     const aiStartTime = new Date().getTime();
     let aiImages = [];
     try {
@@ -572,31 +671,35 @@ export default function UploadPage() {
       textContents,
       aiImages.length ? AI_TEXT_CHARS_WITH_IMAGES : AI_TEXT_CHARS_TEXT_ONLY
     );
+    submissionMeta.images_attached_to_ai = aiImages.length;
+    let aiInputSummary = {
+      attempt: 'primary',
+      image_count: aiImages.length,
+      text_file_count: aiTexts.length,
+      text_chars_sent: aiTexts.reduce((sum, item) => sum + (item.content?.length || 0), 0),
+      text_files_sent: aiTexts.map(item => ({
+        name: item.name,
+        chars_sent: item.content?.length || 0,
+      })),
+      submission_metadata: submissionMeta,
+    };
     const imageContext = (pdfVisualImages.length || docxVisualImages.length)
       ? `Document pages/embedded objects were rendered as optimized images so the AI can inspect figures, screenshots, charts, and scanned content. ${aiImages.length} image(s) were attached within the request budget.`
       : '';
       
     updateAnalysisStep('正在送交 AI 評估', '已完成檔案處理，正在等待模型回覆。', null);
     try {
-      reviewData = await reviewSubmission({
+      const aiResultOutput = await reviewSubmission({
         project: currentProject,
         checkpoint: currentCp,
         submission,
         images: aiImages,
         texts: aiTexts,
         imageContext,
-        submissionMeta: {
-          total_files: files.length,
-          file_types: {
-            images: imageFiles.length,
-            pdfs: pdfFiles.length,
-            text: textFiles.length - pdfFiles.length,
-          },
-          pdf_analysis: pdfAnalysisMeta,
-          docx_analysis: docxAnalysisMeta,
-          images_attached_to_ai: aiImages.length,
-        }
+        submissionMeta,
       });
+      reviewData = aiResultOutput.reviewData;
+      promptContext = aiResultOutput.promptContext;
     } catch (error) {
       if (!isAiTimeout(error) || aiImages.length === 0) {
         setAiError(error.message || 'AI submission review failed.');
@@ -611,25 +714,34 @@ export default function UploadPage() {
       );
 
       try {
-        reviewData = await reviewSubmission({
+        const retryImages = budgetImagesForAi(aiImages, AI_RETRY_IMAGE_DATA_URL_BUDGET);
+        const retryTexts = trimTextContentsForAi(textContents, 12000);
+        const retrySubmissionMeta = {
+          ...submissionMeta,
+          images_attached_to_ai: retryImages.length,
+        };
+        aiInputSummary = {
+          attempt: 'retry_timeout_reduced_payload',
+          image_count: retryImages.length,
+          text_file_count: retryTexts.length,
+          text_chars_sent: retryTexts.reduce((sum, item) => sum + (item.content?.length || 0), 0),
+          text_files_sent: retryTexts.map(item => ({
+            name: item.name,
+            chars_sent: item.content?.length || 0,
+          })),
+          submission_metadata: retrySubmissionMeta,
+        };
+        const retryResult = await reviewSubmission({
           project: currentProject,
           checkpoint: currentCp,
           submission,
-          images: budgetImagesForAi(aiImages, AI_RETRY_IMAGE_DATA_URL_BUDGET),
-          texts: trimTextContentsForAi(textContents, 12000),
+          images: retryImages,
+          texts: retryTexts,
           imageContext: 'Retry mode: only the smallest visual subset and condensed text were attached to avoid timeout.',
-          submissionMeta: {
-            total_files: files.length,
-            file_types: {
-              images: imageFiles.length,
-              pdfs: pdfFiles.length,
-              text: textFiles.length - pdfFiles.length,
-            },
-            pdf_analysis: pdfAnalysisMeta,
-            docx_analysis: docxAnalysisMeta,
-            images_attached_to_ai: budgetImagesForAi(aiImages, AI_RETRY_IMAGE_DATA_URL_BUDGET).length,
-          }
+          submissionMeta: retrySubmissionMeta,
         });
+        reviewData = retryResult.reviewData;
+        promptContext = retryResult.promptContext;
       } catch (retryError) {
         setAiError(retryError.message || error.message || 'AI submission review failed.');
         setPhase('upload');
@@ -640,8 +752,7 @@ export default function UploadPage() {
 
     updateAnalysisStep('正在整理 AI 結果', 'AI 已回覆，正在更新提交狀態。', 0.9);
     const completionRate = reviewData.completion_rate;
-
-    // ── Calculate completion delta from previous version ──
+    // Calculate completion delta from previous version.
     let completionDelta = null;
     if (existingSubs.length > 0) {
       const prevReview = getAIReview(existingSubs[0].id);
@@ -657,17 +768,47 @@ export default function UploadPage() {
 
     // ── Research LOG: AI Evaluation Event ──
     const statusLabel = completionRate >= 80 ? 'Pass' : 'Warning';
+    const fullFeedbackText = [
+      reviewData.overall_comment,
+      reviewData.suggestions,
+      reviewData.encouragement,
+      ...(reviewData.criteria_results || []).map(item => item.comment),
+      ...(reviewData.reflection_questions || []).map(item => item.question || item.fse_prompt),
+    ].filter(Boolean).join(' | ');
+    const flaggedMissingItems = (reviewData.criteria_results || [])
+      .filter(item => Number(item.score) < 70 || item.passed === false)
+      .map(item => ({
+        criterion_id: item.criterion_id,
+        score: item.score,
+        comment: item.comment,
+      }));
     logAIEvalEvent({
       linked_upload_event_id: uploadEvent.event_id,
+      project_id: selectedProject,
+      project_title: currentProject?.title || '',
       submission_id: submission.id,
       checkpoint_id: currentCp.id,
-      student_id: 'demo-student',
+      checkpoint_title: currentCp.title,
+      student_id: participantCode,
       completion_rate: completionRate,
       completion_delta: completionDelta,
       status_label: statusLabel,
-      feedback_text: [reviewData.analysis_summary, reviewData.suggestions].filter(Boolean).join(' | '),
-      flagged_missing_items: [],
+      feedback_text: fullFeedbackText,
+      flagged_missing_items: flaggedMissingItems,
       eval_latency_ms: aiLatencyMs,
+      document_analysis_latency_ms: documentAnalysisMs,
+      frontend_latency_ms: documentAnalysisMs,
+      total_flow_latency_ms: Math.round(new Date().getTime() - startedAt),
+      ai_input_summary: aiInputSummary,
+      ai_output_summary: {
+        criteria_count: reviewData.criteria_results?.length || 0,
+        reflection_question_count: reviewData.reflection_questions?.length || 0,
+        overall_comment_chars: reviewData.overall_comment?.length || 0,
+        suggestions_chars: reviewData.suggestions?.length || 0,
+        encouragement_chars: reviewData.encouragement?.length || 0,
+      },
+      full_ai_response: reviewData,
+      prompt_context: promptContext,
     });
 
     // Automatic pass/fail logic based on threshold
@@ -685,6 +826,12 @@ export default function UploadPage() {
         score: completionRate,
         document_analysis_latency_ms: documentAnalysisMs,
         eval_latency_ms: aiLatencyMs,
+        total_flow_latency_ms: Math.round(new Date().getTime() - startedAt),
+        completion_delta: completionDelta,
+        full_feedback_text: fullFeedbackText,
+        full_ai_response: reviewData,
+        ai_input_summary: aiInputSummary,
+        prompt_context: promptContext,
       });
 
       // ── Research LOG: Checkpoint Summary (auto on pass) ──
@@ -707,7 +854,7 @@ export default function UploadPage() {
       for (let i = 1; i < allRates.length; i++) deltas.push(allRates[i] - allRates[i - 1]);
 
       logCheckpointSummary({
-        student_id: 'demo-student',
+        student_id: participantCode,
         checkpoint_id: currentCp.id,
         total_upload_count: allSubsForCp.length,
         first_upload_timestamp: firstSub?.submitted_at || null,
@@ -729,6 +876,12 @@ export default function UploadPage() {
         score: completionRate,
         document_analysis_latency_ms: documentAnalysisMs,
         eval_latency_ms: aiLatencyMs,
+        total_flow_latency_ms: Math.round(new Date().getTime() - startedAt),
+        completion_delta: completionDelta,
+        full_feedback_text: fullFeedbackText,
+        full_ai_response: reviewData,
+        ai_input_summary: aiInputSummary,
+        prompt_context: promptContext,
       });
     }
 
@@ -741,7 +894,73 @@ export default function UploadPage() {
     }
   };
 
+  const saveResultProbeResponses = () => {
+    if (!aiResult || !currentCp) return false;
+
+    const allCps = getCheckpoints(selectedProject);
+    const allPassed = aiResult.completion_rate >= 80 && allCps.every(c => c.status === 'passed');
+    const user = getCurrentUser();
+    const participantCode = getCurrentParticipantCode();
+
+    if (!feedbackValueProbe.trim()) {
+      setProbeError('請先回答「哪一點最有參考價值」後再繼續。');
+      return false;
+    }
+
+    if (allPassed && !finalChangeProbe.trim()) {
+      setProbeError('請先回答 V1 到現在最大的改變後再完成。');
+      return false;
+    }
+
+    const feedbackProbe = createSrlProbeResponse({
+      probe_key: 'ai_feedback_most_valuable',
+      prompt: '這段回饋裡，哪一點你覺得最有參考價值？',
+      project_id: selectedProject,
+      checkpoint_id: currentCp.id,
+      submission_id: aiResult.submission_id,
+      response_text: feedbackValueProbe.trim().slice(0, 100),
+    });
+    logSrlProbeResponse({
+      probe_key: 'ai_feedback_most_valuable',
+      prompt: '這段回饋裡，哪一點你覺得最有參考價值？',
+      user_id: user?.id,
+      participant_code: participantCode,
+      project_id: selectedProject,
+      checkpoint_id: currentCp.id,
+      submission_id: aiResult.submission_id,
+      response_text: feedbackValueProbe.trim().slice(0, 100),
+      response_id: feedbackProbe.id,
+    });
+
+    if (allPassed) {
+      const finalProbe = createSrlProbeResponse({
+        probe_key: 'final_v1_change',
+        prompt: '跟 V1 比，你最大的改變是什麼？為什麼？',
+        project_id: selectedProject,
+        checkpoint_id: currentCp.id,
+        submission_id: aiResult.submission_id,
+        response_text: finalChangeProbe.trim().slice(0, 150),
+      });
+      logSrlProbeResponse({
+        probe_key: 'final_v1_change',
+        prompt: '跟 V1 比，你最大的改變是什麼？為什麼？',
+        user_id: user?.id,
+        participant_code: participantCode,
+        project_id: selectedProject,
+        checkpoint_id: currentCp.id,
+        submission_id: aiResult.submission_id,
+        response_text: finalChangeProbe.trim().slice(0, 150),
+        response_id: finalProbe.id,
+      });
+    }
+
+    setProbeError('');
+    return true;
+  };
+
   const handleNextAction = () => {
+    if (!saveResultProbeResponses()) return;
+
     if (aiResult?.completion_rate >= 80) {
       const allCps = getCheckpoints(selectedProject);
       const allPassed = allCps.every(c => c.status === 'passed');
@@ -754,6 +973,9 @@ export default function UploadPage() {
       setPhase('upload');
       setFiles([]);
       setAiResult(null);
+      setFeedbackValueProbe('');
+      setFinalChangeProbe('');
+      setProbeError('');
     }
   };
 
@@ -1059,6 +1281,71 @@ export default function UploadPage() {
               )}
             </GlassCard>
 
+            <div className="w-full rounded-2xl border border-primary/20 bg-primary-container/10 p-4">
+              <label htmlFor="feedback-value-probe" className="text-[14px] font-bold text-on-surface">
+                這段回饋裡，哪一點你覺得最有參考價值？
+              </label>
+              <textarea
+                id="feedback-value-probe"
+                value={feedbackValueProbe}
+                maxLength={100}
+                onChange={(event) => {
+                  setFeedbackValueProbe(event.target.value);
+                  setProbeError('');
+                }}
+                rows={3}
+                className="mt-3 w-full rounded-xl border border-outline-variant/40 bg-surface p-3 text-[14px] text-on-surface outline-none transition-colors focus:border-primary"
+                placeholder="請用 100 字以內簡短回答"
+              />
+              <p className="mt-1 text-right text-[11px] text-on-surface-variant">
+                {feedbackValueProbe.length}/100
+              </p>
+            </div>
+
+            {resultAllPassed && (
+              <div className="w-full rounded-2xl border border-tertiary/20 bg-tertiary-container/10 p-4">
+                <label htmlFor="final-change-probe" className="text-[14px] font-bold text-on-surface">
+                  跟 V1 比，你最大的改變是什麼？為什麼？
+                </label>
+                <textarea
+                  id="final-change-probe"
+                  value={finalChangeProbe}
+                  maxLength={150}
+                  onChange={(event) => {
+                    setFinalChangeProbe(event.target.value);
+                    setProbeError('');
+                  }}
+                  rows={4}
+                  className="mt-3 w-full rounded-xl border border-outline-variant/40 bg-surface p-3 text-[14px] text-on-surface outline-none transition-colors focus:border-primary"
+                  placeholder="請用 150 字以內簡短回答"
+                />
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  {hasPostFormUrl ? (
+                    <a
+                      href={postFormUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                    開啟結束表單
+                    </a>
+                  ) : (
+                    <span className="text-[12px] text-status-warning">
+                      尚未設定 VITE_POST_FORM_URL
+                    </span>
+                  )}
+                  <span className="text-[11px] text-on-surface-variant">{finalChangeProbe.length}/150</span>
+                </div>
+              </div>
+            )}
+
+            {probeError && (
+              <div className="w-full rounded-xl bg-error-container text-on-error-container border border-error/20 p-3 text-[13px] leading-relaxed">
+                {probeError}
+              </div>
+            )}
+
             {/* Encouragement */}
             <p className="text-[14px] text-on-surface-variant text-center italic">
               {aiResult.encouragement}
@@ -1069,7 +1356,8 @@ export default function UploadPage() {
               {aiResult.completion_rate >= 80 ? (
                 <button
                   onClick={handleNextAction}
-                  className="flex-1 bg-gradient-to-r from-primary to-tertiary text-on-primary rounded-full py-4 text-[16px] font-medium text-center shadow-md hover:shadow-lg transition-shadow"
+                  disabled={!feedbackValueProbe.trim() || (resultAllPassed && !finalChangeProbe.trim())}
+                  className="flex-1 bg-gradient-to-r from-primary to-tertiary text-on-primary rounded-full py-4 text-[16px] font-medium text-center shadow-md hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   繼續下一步
                 </button>
@@ -1083,7 +1371,8 @@ export default function UploadPage() {
                   </button>
                   <button
                     onClick={handleNextAction}
-                    className="flex-1 bg-primary text-on-primary rounded-full py-3 text-[14px] font-medium text-center hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg"
+                    disabled={!feedbackValueProbe.trim()}
+                    className="flex-1 bg-primary text-on-primary rounded-full py-3 text-[14px] font-medium text-center hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     重新上傳
                   </button>

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createAssignment, getCurrentUser } from '../../lib/store';
 import { useTranslation } from '../../lib/i18n';
 import TopBar from '../../components/layout/TopBar';
 import MarkdownRenderer from '../../components/ui/MarkdownRenderer';
+import DateTimePicker from '../../components/ui/DateTimePicker';
 
 export default function CreateAssignmentPage() {
   const navigate = useNavigate();
@@ -132,11 +133,10 @@ export default function CreateAssignmentPage() {
 
           <div>
             <label className="text-[11px] text-primary font-medium tracking-wider uppercase mb-1 block">{t('assignment.deadline')}</label>
-            <input
-              type="date"
+            <DateTimePicker
               value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="w-full bg-transparent border-b border-outline-variant/50 focus:border-primary py-4 px-1 text-[16px] text-on-surface outline-none transition-colors"
+              onChange={setDeadline}
+              type="datetime-local"
               required
             />
           </div>
